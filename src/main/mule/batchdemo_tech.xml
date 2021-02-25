@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<file:config name="File_Config" doc:name="File Config" doc:id="c016c365-94f8-44a3-9d65-00432bda852b" >
+		<file:connection workingDir="C:\Users\Bala\Desktop\Newfolder\" />
+	</file:config>
+	<file:config name="File_Config1" doc:name="File Config" doc:id="745b7c9f-f043-4945-8536-a1f943850a74" >
+		<file:connection workingDir="C:\Users\Bala\Desktop\Newfolder" />
+	</file:config>
+	<file:config name="File_Config2" doc:name="File Config" doc:id="42c6c4ec-92b6-4154-b188-0c46c49263a6" >
+		<file:connection workingDir="C:\Users\Bala\Desktop\Newfolder\Output" />
+	</file:config>
+	<file:config name="File_Config3" doc:name="File Config" doc:id="a5a1ecc9-9e3c-4ed1-b6a6-cac6db8268c4" >
+		<file:connection workingDir="C:\Users\Bala\Desktop\Newfolder\BATCH" />
+	</file:config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="b98e1b50-f8f8-4830-8171-c05b7b34e431" >
+		<db:my-sql-connection host="localhost" port="3306" user="kanchana" password="pranav2011" database="sakila" />
+	</db:config>
+	<flow name="batchdemo_techFlow1" doc:id="2658c55e-93eb-44a7-890a-81782c3315b7" >
+		<file:listener doc:name="On New or Updated File" doc:id="6a6878b8-6f5b-4334-b382-da209b831f7d" config-ref="File_Config1" directory="C:\Users\Bala\Desktop\Newfolder\input" moveToDirectory="C:\Users\Bala\Desktop\Newfolder\Output">
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</file:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="005780a3-5493-47aa-b997-6c38a345e67d" message="success"/>
+		<ee:transform doc:name="Transform Message" doc:id="865ef399-1b38-4608-bf48-91219bd164e9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<batch:job jobName="batchdemo_techBatch_Job" doc:id="76da62ff-de92-457c-932f-06193b6191d8" >
+			<batch:process-records >
+				<batch:step name="Batch_Step" doc:id="eff1dfac-8b4a-44e8-a53f-21c31355cae8" >
+					<set-variable value='#[(payload."Order ID" default "") ++ ".csv"]' doc:name="orderid" doc:id="1c3642b9-d209-43c2-94da-c64692b90c5f" variableName="orderid"/>
+					<file:write doc:name="Write" doc:id="feeae423-8a9f-4213-a1be-428e3bc6c918" config-ref="File_Config2" path="#[vars.orderid]"/>
+				</batch:step>
+			</batch:process-records>
+		</batch:job>
+	</flow>
+	<flow name="batchdemo_techFlow" doc:id="9ad5e9d4-0204-4c4f-815e-156187afdd9b" >
+		<file:listener doc:name="On New or Updated File" doc:id="f53faf87-2774-4404-98d1-b6bdf97f0878" config-ref="File_Config3" directory="C:\Users\Bala\Desktop\Newfolder\BATCH\input" moveToDirectory="C:\Users\Bala\Desktop\Newfolder\BATCH\Output" autoDelete="true" outputMimeType="application/csv">
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</file:listener>
+		<ee:transform doc:name="Transform Message" doc:id="38628c72-4511-41f9-9a4f-4f2dbadfa34e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload groupBy $.Country pluck $]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="80d50b28-5e34-4fda-a0e6-f8aa5f2e4149" message="#[payload]"/>
+		<batch:job jobName="batchdemo_techBatch_Job1" doc:id="b33dc8e0-8cd5-475a-8d65-fad509c1982e" blockSize="10">
+			<batch:process-records >
+				<batch:step name="Batch_Step1" doc:id="e6c210c2-b7d7-4ee3-9f4a-ef875b1e4f62" >
+					<logger level="INFO" doc:name="Logger" doc:id="f2fc9e17-c350-4c82-90d0-8358695d917c" message="#[payload]"/>
+					<ee:transform doc:name="Transform Message" doc:id="4d04c382-686f-4746-8024-508abb888294" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+detail:
+{
+	Country : payload[0].Country,
+	Item: sizeOf(payload)
+	
+}
+}
+]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<set-variable value="#[payload]" doc:name="recordDetails" doc:id="b7ca0c6d-9451-46cc-b83e-ffd5c398c576" variableName="recordDetails"/>
+					<ee:transform doc:name="Transform Message" doc:id="71d73c4a-42f7-425a-9c98-c7c03ad904ce" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	detail:
+	{
+		Country : vars.recordDetails.detail.Country,
+		Item: vars.recordDetails.detail.Item
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<db:insert doc:id="08d8cb7c-efd7-4207-858c-fc1620c69cfa" doc:name="detail" config-ref="Database_Config">
+						<db:sql ><![CDATA[insert into detail values(:Country,:Item)]]></db:sql>
+						<db:input-parameters ><![CDATA[#[{
+	Country : payload.detail.Country,
+	Item: payload.detail.Item
+}]]]></db:input-parameters>
+					</db:insert>
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="db0b0c7a-e114-4751-bdaf-bebd8b569ce4" size="5">
+						<logger level="INFO" doc:name="Logger" doc:id="5e35d44a-b413-4dfa-ae9f-c299a71ce511" message="#[payload]"/>
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete >
+				<logger level="INFO" doc:name="complete" doc:id="da0e82cc-915f-46ab-845b-dd5ad2b88145" message="Job completed"/>
+				<db:insert doc:name='"On complete payload records"' doc:id="47aeb743-4977-49c3-83e9-980db0432034" config-ref="Database_Config">
+					<db:sql ><![CDATA[insert into batch_processing(batchID,totalRecords,failedRecords,successRecords)
+values(:batchID,:totalRecords,:failedRecords,:successRecords)]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	batchID : payload.batchJobInstanceId,
+	totalRecords: payload.totalRecords,
+	failedRecords: payload.failedRecords,
+	successRecords: payload.successfulRecords
+}]]]></db:input-parameters>
+				</db:insert>
+			</batch:on-complete>
+		</batch:job>
+	</flow>
+</mule>
